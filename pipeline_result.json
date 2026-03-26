@@ -1,0 +1,130 @@
+{
+  "pdf": "Case Study Exposé.pdf",
+  "model": "llama3.1",
+  "json": "extracted_data.json",
+  "excel": "Cirrus_BusinessCase_2026-03-26.xlsx",
+  "drive": {
+    "project_folder": "Oranienburger_Straße_6_in_16321_Bernau_2026-03-26",
+    "project_url": "https://drive.google.com/drive/folders/11R1xPYKwDa-TT5EF797PO8q_XbeTIO-n",
+    "files": [
+      {
+        "file": "Case Study Exposé.pdf",
+        "url": "https://drive.google.com/file/d/1f3DvU_DcyRJiyF4SwIs_d8Ysi9cYe4i-/view?usp=drivesdk"
+      },
+      {
+        "file": "extracted_data.json",
+        "url": "https://drive.google.com/file/d/1gt-r5W9TaEgqLASmI89phgdEe8YCwn72/view?usp=drivesdk"
+      },
+      {
+        "file": "Cirrus_BusinessCase_2026-03-26.xlsx",
+        "url": "https://docs.google.com/spreadsheets/d/11g0M8N1_AleNopFZi-OO1VKzNLcX2_il/edit?usp=drivesdk&ouid=106110339165184148635&rtpof=true&sd=true"
+      }
+    ],
+    "images": [
+      {
+        "file": "page01_img01.jpeg",
+        "url": "https://drive.google.com/file/d/1BZpPN_rQzJDsTF2VJfrXNY9jjdMdHArL/view?usp=drivesdk"
+      },
+      {
+        "file": "page01_img02.jpeg",
+        "url": "https://drive.google.com/file/d/155CA7T2C-lzWpYPEt3UoXQW4sHcIrbcJ/view?usp=drivesdk"
+      },
+      {
+        "file": "page03_img01.jpeg",
+        "url": "https://drive.google.com/file/d/1ptEeXRaozsl2qu3g95Uc0SqshU9pOUk0/view?usp=drivesdk"
+      },
+      {
+        "file": "page03_img02.jpeg",
+        "url": "https://drive.google.com/file/d/1sV4Bdop5fldt9fsP3JTg9KgaoztzaQWd/view?usp=drivesdk"
+      },
+      {
+        "file": "page04_img01.jpeg",
+        "url": "https://drive.google.com/file/d/1AvJJnKqZla2-W37lq8GsHobgWKrJB8gC/view?usp=drivesdk"
+      },
+      {
+        "file": "page04_img02.jpeg",
+        "url": "https://drive.google.com/file/d/1RmuN63qx1EIk5cwzLm8b47aA_m5THHWX/view?usp=drivesdk"
+      },
+      {
+        "file": "page05_img01.jpeg",
+        "url": "https://drive.google.com/file/d/13xu1gP0qPAlgbTzY3eaqdNtMkvbGrW4U/view?usp=drivesdk"
+      },
+      {
+        "file": "page05_img02.jpeg",
+        "url": "https://drive.google.com/file/d/1t9m805pI6lXxKs4c2EJLxfwV4VeIPoa0/view?usp=drivesdk"
+      },
+      {
+        "file": "page05_img03.jpeg",
+        "url": "https://drive.google.com/file/d/1M4XRA8tdcuaZTzAwkgqyn-X1JVAbDjvf/view?usp=drivesdk"
+      },
+      {
+        "file": "page05_img04.jpeg",
+        "url": "https://drive.google.com/file/d/126KS2BlXtYBjtYkhPnln-HSdN9S_Oqwn/view?usp=drivesdk"
+      },
+      {
+        "file": "page06_img01.jpeg",
+        "url": "https://drive.google.com/file/d/1TQtqprctE7iIV360gaetpDPl-ZMDysp5/view?usp=drivesdk"
+      },
+      {
+        "file": "page06_img02.jpeg",
+        "url": "https://drive.google.com/file/d/1JRV8aPgFWcKE17BOI0TO4Ef6XmifbTi9/view?usp=drivesdk"
+      },
+      {
+        "file": "page06_img03.jpeg",
+        "url": "https://drive.google.com/file/d/1i_cVcgEShchzoL6cyR-8zeNlrISs92YV/view?usp=drivesdk"
+      },
+      {
+        "file": "page06_img04.jpeg",
+        "url": "https://drive.google.com/file/d/1Nwz5gKy7OISax-ehJHNn0eh8mef6dOiy/view?usp=drivesdk"
+      },
+      {
+        "file": "page07_img01.jpeg",
+        "url": "https://drive.google.com/file/d/100wVwDLzFJb6j9V7_Ixa1B-MTXyQa0il/view?usp=drivesdk"
+      },
+      {
+        "file": "page07_img02.jpeg",
+        "url": "https://drive.google.com/file/d/1Fv2dDBtR5VMCtodwBVGRr-1YzvUUT0Uw/view?usp=drivesdk"
+      },
+      {
+        "file": "page07_img03.jpeg",
+        "url": "https://drive.google.com/file/d/1sAPRHI4xYE3Bbk95OmmEfJch3cigzK2l/view?usp=drivesdk"
+      },
+      {
+        "file": "page07_img04.jpeg",
+        "url": "https://drive.google.com/file/d/1-HpEBgMh1FMc45EwtBGFQ015GrizliW9/view?usp=drivesdk"
+      },
+      {
+        "file": "page08_img01.jpeg",
+        "url": "https://drive.google.com/file/d/1HCfq85MQxObzEqy7OjlPCkk_LsgTRCmb/view?usp=drivesdk"
+      }
+    ]
+  },
+  "pipeline": {
+    "date": "2026-03-26",
+    "elapsed_s": 636.9,
+    "steps_ok": 4,
+    "steps_total": 4,
+    "steps": [
+      {
+        "step": "PDF Extraction",
+        "status": "ok",
+        "detail": "11 tenants · conf 100%"
+      },
+      {
+        "step": "Market Price",
+        "status": "ok",
+        "detail": "3200.0 €/m² (manual)"
+      },
+      {
+        "step": "Excel Population",
+        "status": "ok",
+        "detail": "Cirrus_BusinessCase_2026-03-26.xlsx | €1,902,528.0"
+      },
+      {
+        "step": "Google Drive",
+        "status": "ok",
+        "detail": "Files + images uploaded"
+      }
+    ]
+  }
+}

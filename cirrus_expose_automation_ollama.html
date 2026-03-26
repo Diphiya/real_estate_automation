@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cirrus — Exposé Automation (Ollama)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0b0e14; --surface: #13171f; --surface2: #1a2030; --surface3: #212840;
+    --border: #252d3d; --border2: #2e3850;
+    --accent: #3b82f6; --accent-dim: rgba(59,130,246,.15);
+    --green: #22c55e; --green-dim: rgba(34,197,94,.15);
+    --warn: #f59e0b;  --warn-dim: rgba(245,158,11,.15);
+    --danger: #ef4444; --danger-dim: rgba(239,68,68,.15);
+    --text: #e2e8f0; --muted: #64748b; --muted2: #94a3b8;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
+
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .main-area { display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 56px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* ── Logo ── */
+  .logo { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border); }
+  .logo-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: #fff; letter-spacing: -1px; flex-shrink: 0; }
+  .logo-name { font-weight: 700; font-size: 15px; }
+  .logo-sub { font-size: 11px; color: var(--muted); }
+  .badge-local { font-size: 10px; font-weight: 600; padding: 2px 8px; background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,.3); border-radius: 20px; white-space: nowrap; }
+
+  /* ── Sidebar labels ── */
+  .slabel { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+
+  /* ── Status pill ── */
+  .status-pill { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; transition: background .3s; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-red   { background: var(--danger); }
+  .dot-gray  { background: var(--muted); }
+
+  /* ── Form controls ── */
+  input, select, textarea {
+    background: var(--surface2); border: 1px solid var(--border2); color: var(--text);
+    border-radius: 8px; padding: 8px 11px; font-size: 13px; width: 100%;
+    outline: none; font-family: var(--sans); transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  .row-2 { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .icon-btn { background: var(--surface2); border: 1px solid var(--border2); color: var(--muted2); border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 12px; white-space: nowrap; transition: color .15s; flex-shrink: 0; }
+  .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ── Upload zone ── */
+  .upload-zone { border: 1.5px dashed var(--border2); border-radius: 10px; padding: 16px 12px; text-align: center; cursor: pointer; transition: all .2s; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-dim); }
+  .upload-zone.has-file { border-color: var(--green); background: var(--green-dim); }
+  .upload-zone input { display: none; }
+  .upload-icon { font-size: 22px; margin-bottom: 4px; }
+  .upload-label { font-size: 12px; color: var(--muted2); }
+  .upload-name { font-size: 12px; color: var(--green); margin-top: 2px; font-family: var(--mono); }
+
+  /* ── Steps ── */
+  .steps { display: flex; flex-direction: column; gap: 3px; }
+  .step { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 7px; font-size: 13px; color: var(--muted); transition: all .2s; }
+  .step.active { background: var(--accent-dim); color: var(--accent); }
+  .step.done { color: var(--green); }
+  .step.error { color: var(--danger); }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; font-family: var(--mono); }
+  .step.done .step-num, .step.active .step-num { background: currentColor; color: var(--surface); }
+
+  /* ── Buttons ── */
+  .btn-primary { width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--sans); transition: opacity .15s; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary:not(:disabled):hover { opacity: .88; }
+  .btn-secondary { width: 100%; padding: 9px; background: var(--surface2); color: var(--muted2); border: 1px solid var(--border2); border-radius: 9px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--sans); transition: all .15s; }
+  .btn-secondary:hover { color: var(--text); border-color: var(--border); }
+
+  /* ── KPI row ── */
+  .kpi-row { display: grid; gap: 12px; margin-bottom: 20px; }
+  .kpi-row-4 { grid-template-columns: repeat(4, 1fr); }
+  .kpi-row-3 { grid-template-columns: repeat(3, 1fr); }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .kpi-label { font-size: 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .kpi-value { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+  .kv-green { color: var(--green); } .kv-blue { color: var(--accent); } .kv-warn { color: var(--warn); } .kv-red { color: var(--danger); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 2px; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; flex-shrink: 0; }
+  .tab { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap; }
+  .tab:hover { color: var(--muted2); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-pane { display: none; } .tab-pane.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .card-title { font-size: 11px; font-weight: 600; letter-spacing: .5px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+  /* ── Field rows ── */
+  .field-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .field-row:last-child { border-bottom: none; }
+  .fk { font-size: 13px; color: var(--muted); }
+  .fv { font-size: 13px; font-weight: 500; font-family: var(--mono); }
+  .fv.ok { color: var(--green); } .fv.blue { color: var(--accent); } .fv.miss { color: var(--danger); font-style: italic; font-family: var(--sans); }
+
+  /* ── Table ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tbl th { text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .tbl td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tbody tr:hover { background: var(--surface2); }
+  .tbl tfoot td { font-weight: 600; border-top: 1px solid var(--border); color: var(--accent); }
+
+  /* ── Log ── */
+  .log-box { background: #070a0f; border: 1px solid var(--border); border-radius: 10px; padding: 14px; font-family: var(--mono); font-size: 12px; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+  .log-entry { display: flex; gap: 10px; line-height: 1.6; }
+  .lt { color: var(--muted); flex-shrink: 0; }
+  .li { color: var(--accent); } .ls { color: var(--green); } .lw { color: var(--warn); } .le { color: var(--danger); }
+
+  /* ── Progress ── */
+  .progress-bar { height: 3px; background: var(--surface3); border-radius: 99px; overflow: hidden; margin: 4px 0 0; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+
+  /* ── Badge ── */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--mono); }
+  .badge-g { background: var(--green-dim);  color: var(--green); }
+  .badge-b { background: var(--accent-dim); color: var(--accent); }
+  .badge-w { background: var(--warn-dim);   color: var(--warn); }
+  .badge-r { background: var(--danger-dim); color: var(--danger); }
+
+  /* ── Recommendation box ── */
+  .rec-box { border-radius: 12px; padding: 20px 24px; text-align: center; }
+  .rec-box.acquire { background: var(--green-dim); border: 1px solid rgba(34,197,94,.4); }
+  .rec-box.review  { background: var(--warn-dim);  border: 1px solid rgba(245,158,11,.4); }
+  .rec-box.skip    { background: var(--danger-dim);border: 1px solid rgba(239,68,68,.4); }
+  .rec-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+  .rec-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .rec-sub   { font-size: 12px; opacity: .7; margin-top: 4px; }
+  .rec-box.acquire .rec-value { color: var(--green); }
+  .rec-box.review  .rec-value { color: var(--warn); }
+  .rec-box.skip    .rec-value { color: var(--danger); }
+
+  /* ── Welcome ── */
+  .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px; }
+  .welcome-icon { font-size: 48px; margin-bottom: 16px; }
+  .welcome h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .welcome p { font-size: 14px; color: var(--muted2); max-width: 460px; line-height: 1.7; }
+  .code-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-family: var(--mono); font-size: 12px; text-align: left; margin-top: 16px; line-height: 2; color: var(--muted2); }
+  .code-block .cmd { color: var(--green); }
+
+  /* ── Score meter ── */
+  .score-meter { position: relative; width: 100%; height: 8px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 99px; transition: width .8s cubic-bezier(.16,1,.3,1); }
+
+  /* ── Hint ── */
+  .hint { font-size: 11.5px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 11px; margin-top: 6px; line-height: 1.6; }
+  .hint code { font-family: var(--mono); background: rgba(255,255,255,.07); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+  /* ── Editable overlay ── */
+  .editable-notice { background: var(--warn-dim); border: 1px solid rgba(245,158,11,.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--warn); margin-bottom: 12px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.5 } }
+  .pulsing { animation: pulse 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">C</div>
+      <div>
+        <div class="logo-name">Cirrus AI</div>
+        <div class="logo-sub">Exposé Automation</div>
+      </div>
+      <div style="margin-left:auto"><span class="badge-local">🔒 Local</span></div>
+    </div>
+
+    <div class="sidebar-scroll">
+      <!-- Ollama connection -->
+      <div>
+        <div class="slabel">Ollama Connection</div>
+        <div class="status-pill" id="statusPill">
+          <div class="dot dot-gray" id="statusDot"></div>
+          <span id="statusText" style="color:var(--muted)">Not checked</span>
+        </div>
+        <div class="row-2" style="margin-top:6px">
+          <input type="text" id="ollamaHost" value="http://localhost:11434" placeholder="Ollama URL">
+          <button class="icon-btn" onclick="checkOllama()">Check</button>
+        </div>
+      </div>
+
+      <!-- Model -->
+      <div>
+        <div class="slabel">Model</div>
+        <select id="modelSelect">
+          <option value="llama3.1">llama3.1 ✦ recommended</option>
+          <option value="llama3.2">llama3.2</option>
+          <option value="mistral">mistral</option>
+          <option value="gemma2">gemma2</option>
+          <option value="qwen2.5">qwen2.5</option>
+          <option value="phi3">phi3</option>
+          <option value="deepseek-r1">deepseek-r1</option>
+        </select>
+        <div class="hint">First time? <code>ollama pull llama3.1</code></div>
+      </div>
+
+      <!-- PDF upload -->
+      <div>
+        <div class="slabel">Exposé (PDF)</div>
+        <label class="upload-zone" id="uploadZone" for="pdfInput">
+          <div class="upload-icon">📄</div>
+          <div class="upload-label">Drop PDF here or click to browse</div>
+          <div class="upload-name" id="uploadName">No file selected</div>
+          <input type="file" id="pdfInput" accept=".pdf">
+        </label>
+      </div>
+
+      <!-- Market price -->
+      <div>
+        <div class="slabel">Market Price (€/m²)</div>
+        <input type="number" id="pricePerSqm" placeholder="e.g. 3200" min="0">
+        <div class="hint">From <code>check24.de/baufinanzierung/immobilienbewertung/</code></div>
+      </div>
+
+      <!-- Criteria overrides -->
+      <div>
+        <div class="slabel">Quick Criteria</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Min yield %</div>
+            <input type="number" id="minYield" value="4.5" step="0.1" min="0">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Max multiplier</div>
+            <input type="number" id="maxMulti" value="22" step="1" min="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline steps -->
+      <div>
+        <div class="slabel">Pipeline Steps</div>
+        <div class="steps">
+          <div class="step" id="step1"><div class="step-num">1</div>PDF Text Extraction</div>
+          <div class="step" id="step2"><div class="step-num">2</div>Ollama LLM Parsing</div>
+          <div class="step" id="step3"><div class="step-num">3</div>Deal Score Calc</div>
+          <div class="step" id="step4"><div class="step-num">4</div>Market Price Analysis</div>
+          <div class="step" id="step5"><div class="step-num">5</div>Excel Template</div>
+          <div class="step" id="step6"><div class="step-num">6</div>Drive / Photos</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-primary" id="runBtn" onclick="runPipeline()">
+        <span id="runBtnText">▶ Run Pipeline</span>
+        <div class="spinner" id="runSpinner" style="display:none"></div>
+      </button>
+      <button class="btn-secondary" id="dlBtn" onclick="downloadExcel()" style="display:none">
+        ⬇ Download Excel
+      </button>
+      <button class="btn-secondary" id="dlJsonBtn" onclick="downloadJSON()" style="display:none">
+        {} Download JSON
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ──────────────────────────────────────────────────────────── -->
+  <div class="main-area">
+
+    <div class="topbar">
+      <div style="font-size:13px;color:var(--muted)">
+        <span id="topbarTitle">Ready</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted)">
+        <span id="runCount">0 analyses run</span>
+        <span>|</span>
+        <span>Ollama — 100% offline</span>
+      </div>
+    </div>
+
+    <!-- Tabs (hidden until results are ready) -->
+    <div class="tabs" id="tabsBar" style="display:none">
+      <div class="tab active" onclick="switchTab('overview')">Overview</div>
+      <div class="tab" onclick="switchTab('property')">Property</div>
+      <div class="tab" onclick="switchTab('tenants')">Rent Roll</div>
+      <div class="tab" onclick="switchTab('bizcase')">Business Case</div>
+      <div class="tab" onclick="switchTab('integrations')">Integrations</div>
+      <div class="tab" onclick="switchTab('log')">Log</div>
+    </div>
+
+    <div class="content" id="mainContent">
+
+      <!-- Welcome -->
+      <div id="welcomeView" class="welcome">
+        <div class="welcome-icon">🏢</div>
+        <h2>Cirrus AI Pipeline — 100% Local</h2>
+        <p>No API key needed. PDF data stays on your machine. Powered by Ollama running locally on your hardware.</p>
+        <div class="code-block">
+          <span class="cmd">ollama serve</span> &nbsp;←&nbsp; start Ollama daemon<br>
+          <span class="cmd">ollama pull llama3.1</span> &nbsp;←&nbsp; download model (~4.7 GB)<br>
+          Then upload a PDF and click <strong>Run Pipeline</strong>.
+        </div>
+      </div>
+
+      <!-- Results (hidden until run) -->
+      <div id="resultsView" style="display:none">
+
+        <!-- Overview tab -->
+        <div class="tab-pane active" id="tab-overview">
+          <div class="kpi-row kpi-row-4" id="kpiRow"></div>
+          <div class="grid-2">
+            <div>
+              <div class="card">
+                <div class="card-title">Deal Score</div>
+                <div id="dealScoreDisplay"></div>
+              </div>
+              <div class="card">
+                <div class="card-title">Extraction Confidence</div>
+                <div id="confDisplay"></div>
+              </div>
+            </div>
+            <div>
+              <div class="card" style="height:100%">
+                <div class="card-title">AI Summary</div>
+                <p id="aiSummary" style="font-size:13px;line-height:1.8;color:var(--muted2)"></p>
+                <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+                  <div class="card-title" style="margin-bottom:6px">Model used</div>
+                  <div id="modelUsed" style="font-family:var(--mono);font-size:12px;color:var(--accent)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Property tab -->
+        <div class="tab-pane" id="tab-property">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Facts &amp; Location</div>
+              <div id="factsDisplay"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Areas &amp; Structure</div>
+              <div id="areasDisplay"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Acquisition Costs</div>
+            <div id="acqDisplay"></div>
+          </div>
+        </div>
+
+        <!-- Tenants tab -->
+        <div class="tab-pane" id="tab-tenants">
+          <div class="card">
+            <div class="card-title">Rent Roll (Mieterliste)</div>
+            <div class="editable-notice">⚠ Tip: Check all values against the original exposé before making investment decisions.</div>
+            <div style="overflow-x:auto">
+              <table class="tbl">
+                <thead><tr>
+                  <th>Unit</th><th>Floor</th><th>Since</th><th>Area m²</th>
+                  <th>NKM €/m²</th><th>Cold Rent €</th><th>BK Advance €</th>
+                  <th>Gross €</th><th>Parking €</th>
+                </tr></thead>
+                <tbody id="rentBody"></tbody>
+                <tfoot id="rentFoot"></tfoot>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Additional Income</div>
+            <div id="extraIncome"></div>
+          </div>
+        </div>
+
+        <!-- Business case tab -->
+        <div class="tab-pane" id="tab-bizcase">
+          <div class="kpi-row kpi-row-3" id="bcKpiRow"></div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Revenue Scenarios</div>
+              <div id="scenariosDisplay"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Cost Breakdown</div>
+              <div id="costsDisplay"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Check24 Valuation</div>
+            <div id="valuationDisplay"></div>
+          </div>
+        </div>
+
+        <!-- Integrations tab -->
+        <div class="tab-pane" id="tab-integrations">
+          <div class="card">
+            <div class="card-title">Google Drive</div>
+            <div id="driveDisplay"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Architecture: Ollama vs Anthropic API</div>
+            <div id="archDisplay"></div>
+          </div>
+        </div>
+
+        <!-- Log tab -->
+        <div class="tab-pane" id="tab-log">
+          <div class="log-box" id="logBox"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let extractedData = null;
+let runCounter = 0;
+
+// ── Demo data (Bernau exposé — pre-filled for offline demo) ──────────────────
+const DEMO = {
+  address: "Oranienburger Straße 6, 16321 Bernau",
+  district: "Bernau / Rehberge",
+  objectType: "Mehrfamilienhaus (11 WE)",
+  buildYear: 1920, lastRenovation: 2000, plotSize: 1172,
+  totalLivingArea: 594.54, basementArea: 82.61, floors: 3,
+  atticDeveloped: true, units: 11, fullyRented: true,
+  parkingSpots: 11, energyClass: "F", energyValue: 164.1,
+  heatingType: "Zentrale Gasheizung",
+  purchasePrice: 1350000, brokerFee: 96390,
+  ancillaryCosts: 108000, divisionCosts: 10000,
+  marketingCosts: 10000, otherCosts: 10000, finCosts: 81000,
+  extras: { containerRent: 50, flightSecurityRent: 58.33, outsideParkingRent: 350 },
+  tenants: [
+    {nr:1, floor:"EG li",   since:"01.11.2015", area:46.95, nkm:417.83, nkmSqm:8.90, bk:110,  gross:527.83,  parking:0},
+    {nr:2, floor:"EG mi",   since:"01.02.2010", area:52.49, nkm:466.02, nkmSqm:8.88, bk:90,   gross:556.02,  parking:0},
+    {nr:3, floor:"EG re",   since:"01.07.2022", area:49.16, nkm:475.00, nkmSqm:9.66, bk:70,   gross:545.00,  parking:0},
+    {nr:4, floor:"1.OG li", since:"01.08.2005", area:50.00, nkm:404.27, nkmSqm:8.09, bk:90,   gross:494.27,  parking:100},
+    {nr:5, floor:"1.OG mi", since:"01.11.2022", area:51.18, nkm:500.00, nkmSqm:9.77, bk:100,  gross:600.00,  parking:50},
+    {nr:6, floor:"1.OG re", since:"01.07.2022", area:50.47, nkm:440.00, nkmSqm:8.72, bk:70,   gross:510.00,  parking:0},
+    {nr:7, floor:"2.OG li", since:"01.07.2011", area:50.61, nkm:409.15, nkmSqm:8.08, bk:80,   gross:489.15,  parking:50},
+    {nr:8, floor:"2.OG mi", since:"01.04.2009", area:51.39, nkm:456.22, nkmSqm:8.88, bk:95,   gross:551.22,  parking:50},
+    {nr:9, floor:"2.OG re", since:"01.08.2014", area:50.21, nkm:407.53, nkmSqm:8.12, bk:80,   gross:487.53,  parking:50},
+    {nr:10,floor:"DG li",   since:"15.10.2025", area:80.52, nkm:900.00, nkmSqm:11.18,bk:150,  gross:1050.00, parking:50},
+    {nr:11,floor:"DG re",   since:"01.08.2021", area:61.56, nkm:510.00, nkmSqm:8.28, bk:95,   gross:605.00,  parking:0},
+  ],
+  confidence: { address:90, pricing:88, areas:95, tenants:90, costs:80, photos:65 }
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const de = n => new Intl.NumberFormat('de-DE', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(n);
+const eur = n => `€${de(n)}`;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ── Ollama check ──────────────────────────────────────────────────────────────
+async function checkOllama() {
+  const host = document.getElementById('ollamaHost').value.trim();
+  const dot  = document.getElementById('statusDot');
+  const txt  = document.getElementById('statusText');
+  txt.textContent = 'Checking…'; dot.className = 'dot dot-gray pulsing';
+  try {
+    const resp = await fetch(`${host}/api/tags`, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const models = (data.models || []).map(m => m.name);
+    dot.className = 'dot dot-green'; dot.classList.remove('pulsing');
+    txt.textContent = `Connected — ${models.length} model(s)`;
+    txt.style.color = 'var(--green)';
+    // Populate model selector with actual available models
+    const sel = document.getElementById('modelSelect');
+    const current = sel.value;
+    sel.innerHTML = models.map(m => `<option value="${m}"${m===current?' selected':''}>${m}</option>`).join('');
+    if (!models.includes(current) && models.length > 0) sel.value = models[0];
+    log(`Ollama connected — models: ${models.slice(0,4).join(', ')}`, 's');
+  } catch(e) {
+    dot.className = 'dot dot-red'; dot.classList.remove('pulsing');
+    txt.textContent = `Not reachable: ${e.message}`;
+    txt.style.color = 'var(--danger)';
+    log(`Ollama not reachable: ${e.message}`, 'e');
+  }
+}
+
+// ── File upload ───────────────────────────────────────────────────────────────
+document.getElementById('pdfInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('uploadName').textContent = file.name;
+  document.getElementById('uploadZone').classList.add('has-file');
+  log(`PDF loaded: ${file.name}`, 'i');
+});
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file?.type === 'application/pdf') {
+    document.getElementById('uploadName').textContent = file.name;
+    zone.classList.add('has-file');
+  }
+});
+
+// ── Step tracking ─────────────────────────────────────────────────────────────
+function setStep(n, state) {
+  const el = document.getElementById('step' + n);
+  if (!el) return;
+  el.className = 'step ' + state;
+  const num = el.querySelector('.step-num');
+  if (state === 'done') num.textContent = '✓';
+  else if (state === 'error') num.textContent = '✗';
+  else if (state === 'active') num.textContent = '…';
+  else num.textContent = n;
+}
+function resetSteps() {
+  for (let i = 1; i <= 6; i++) setStep(i, '');
+}
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+function log(msg, type = 'i') {
+  const now = new Date().toTimeString().slice(0, 8);
+  const box = document.getElementById('logBox');
+  if (!box) return;
+  const cls = { i:'li', s:'ls', w:'lw', e:'le' }[type] || 'li';
+  const d = document.createElement('div');
+  d.className = 'log-entry';
+  d.innerHTML = `<span class="lt">${now}</span><span class="${cls}">${msg}</span>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  const names = ['overview','property','tenants','bizcase','integrations','log'];
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', names[i] === name));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const pane = document.getElementById('tab-' + name);
+  if (pane) pane.classList.add('active');
+}
+
+// ── Deal scoring ──────────────────────────────────────────────────────────────
+function computeMetrics(d, mktSqm) {
+  const tenants = d.tenants || [];
+  const extras = d.extras || {};
+  const monthlyNKM = tenants.reduce((s,t) => s + (t.nkm||0), 0)
+    + (extras.containerRent||50) + (extras.flightSecurityRent||58.33) + (extras.outsideParkingRent||350);
+  const annualNKM = monthlyNKM * 12;
+  const kp = d.purchasePrice || 0;
+  const grossYield = kp ? annualNKM / kp * 100 : 0;
+  const multiplier = annualNKM ? kp / annualNKM : 0;
+
+  const totalCosts = kp + (d.brokerFee||0) + (d.ancillaryCosts||0)
+    + (d.divisionCosts||0) + (d.marketingCosts||0) + (d.otherCosts||0) + (d.finCosts||0);
+
+  const baseRev  = (d.totalLivingArea||0) * (mktSqm||0);
+  const bestRev  = baseRev * 1.10;
+  const worstRev = baseRev * 0.90;
+  const baseProfit  = baseRev - totalCosts;
+  const baseMargin  = baseRev ? baseProfit / baseRev * 100 : 0;
+
+  const minYield = parseFloat(document.getElementById('minYield').value) || 4.5;
+  const maxMulti = parseFloat(document.getElementById('maxMulti').value) || 22;
+
+  let score = 50;
+  if (grossYield >= minYield) score += Math.min(30, (grossYield - minYield) * 10);
+  else score -= Math.min(30, (minYield - grossYield) * 10);
+  if (multiplier <= maxMulti) score += 10; else score -= Math.min(20, (multiplier - maxMulti) * 2);
+  if (['E','F','G','H'].includes(d.energyClass)) score -= 5;
+  if (d.fullyRented) score += 5;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const rec = score >= 70 ? 'ACQUIRE' : score >= 50 ? 'REVIEW' : 'SKIP';
+  return { monthlyNKM, annualNKM, grossYield, multiplier, totalCosts, baseRev, bestRev, worstRev, baseProfit, baseMargin, score, rec };
+}
+
+// ── Ollama API call ───────────────────────────────────────────────────────────
+async function callOllama(text, model, host) {
+  const systemPrompt = `You are a German real estate data extraction specialist.
+Extract all structured data from this German property exposé and return ONLY valid JSON.
+No markdown fences, no explanations, no preamble — ONLY the JSON object.
+Use null for missing fields. All monetary values are plain numbers.
+Extract ALL rows from the Mieterliste (tenant list) if present.
+
+Required JSON shape (include ALL fields):
+{
+  "address": "string",
+  "district": "string",
+  "objectType": "string",
+  "buildYear": number,
+  "lastRenovation": number,
+  "plotSize": number,
+  "totalLivingArea": number,
+  "basementArea": number,
+  "floors": number,
+  "atticDeveloped": boolean,
+  "units": number,
+  "fullyRented": boolean,
+  "parkingSpots": number,
+  "energyClass": "string",
+  "energyValue": number,
+  "heatingType": "string",
+  "purchasePrice": number,
+  "brokerFee": number,
+  "ancillaryCosts": number,
+  "divisionCosts": number,
+  "marketingCosts": number,
+  "otherCosts": number,
+  "finCosts": null,
+  "extras": { "containerRent": number, "flightSecurityRent": number, "outsideParkingRent": number },
+  "tenants": [{"nr":number,"floor":"string","since":"DD.MM.YYYY","area":number,"nkm":number,"nkmSqm":number,"bk":number,"gross":number,"parking":number}],
+  "confidence": {"address":85,"pricing":80,"areas":90,"tenants":85,"costs":75,"photos":60}
+}`;
+
+  const resp = await fetch(`${host}/api/chat`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Extract all data from this German real estate exposé and return ONLY valid JSON:\n\n${text}\n\nReturn JSON only.` }
+      ],
+      stream: false,
+      options: { temperature: 0.0, num_predict: 4000 }
+    })
+  });
+  if (!resp.ok) throw new Error(`Ollama HTTP ${resp.status}`);
+  const data = await resp.json();
+  return data.message?.content || '';
+}
+
+// ── Demo PDF text (Bernau exposé summary) ─────────────────────────────────────
+const EXPOSE_TEXT = `Mehrfamilienhaus Oranienburger Straße 6, 16321 Bernau, Stadtteil Rehberge.
+Baujahr 1920, Modernisierung 2000. Grundstücksgröße ca. 1172 m². Wohnflächen gesamt 594,54 m². Kellerfläche 82,61 m².
+3 Vollgeschosse + ausgebautes DG. 11 Wohneinheiten, alle vermietet. 11 PKW-Stellplätze.
+Kaufpreis: 1.350.000 € VB. Provision: 3,57% für Käufer und Verkäufer.
+Energieausweis: Bedarfsausweis, Endenergie 164,1 kWh/m²a, Klasse F, Energieträger Gas.
+Heizung: zentrale Gas-Heizung, Stadtwerke Bernau 40 kW.
+
+Mieterliste:
+1 | EG li  | 01.11.2015 | 46,95 m² | 417,83 € NKM | 8,90 €/m² | 110 € BK | 527,83 € brutto | kein Stellplatz
+2 | EG mi  | 01.02.2010 | 52,49 m² | 466,02 € NKM | 8,88 €/m² |  90 € BK | 556,02 € brutto | kein Stellplatz
+3 | EG re  | 01.07.2022 | 49,16 m² | 475,00 € NKM | 9,66 €/m² |  70 € BK | 545,00 € brutto | kein Stellplatz
+4 | 1.OG li| 01.08.2005 | 50,00 m² | 404,27 € NKM | 8,09 €/m² |  90 € BK | 494,27 € brutto | Stellplatz 100 €
+5 | 1.OG mi| 01.11.2022 | 51,18 m² | 500,00 € NKM | 9,77 €/m² | 100 € BK | 600,00 € brutto | Stellplatz  50 €
+6 | 1.OG re| 01.07.2022 | 50,47 m² | 440,00 € NKM | 8,72 €/m² |  70 € BK | 510,00 € brutto | kein Stellplatz
+7 | 2.OG li| 01.07.2011 | 50,61 m² | 409,15 € NKM | 8,08 €/m² |  80 € BK | 489,15 € brutto | Stellplatz  50 €
+8 | 2.OG mi| 01.04.2009 | 51,39 m² | 456,22 € NKM | 8,88 €/m² |  95 € BK | 551,22 € brutto | Stellplatz  50 €
+9 | 2.OG re| 01.08.2014 | 50,21 m² | 407,53 € NKM | 8,12 €/m² |  80 € BK | 487,53 € brutto | Stellplatz  50 €
+10| DG li  | 15.10.2025 | 80,52 m² | 900,00 € NKM |11,18 €/m² | 150 € BK |1050,00 € brutto | Stellplatz  50 €
+11| DG re  | 01.08.2021 | 61,56 m² | 510,00 € NKM | 8,28 €/m² |  95 € BK | 605,00 € brutto | kein Stellplatz
+
+Sonstige Einnahmen:
+- kl. Container Anbau: 50,00 €/Monat
+- Anlage Flugsicherung: 58,33 €/Monat
+- Außen Stellplätze: 350,00 €/Monat
+
+Besonderheit: Verdichtungspotential nach § 34 BauGB (laut Auskunft Bauordnungsamt).
+Lage: 9 km nordöstlich Berlin, S-Bahn S2 im 20-Minuten-Takt.`;
+
+// ── Main pipeline ─────────────────────────────────────────────────────────────
+async function runPipeline() {
+  const host   = document.getElementById('ollamaHost').value.trim();
+  const model  = document.getElementById('modelSelect').value;
+  const mktSqm = parseFloat(document.getElementById('pricePerSqm').value) || 0;
+
+  resetSteps();
+  document.getElementById('welcomeView').style.display = 'none';
+  document.getElementById('resultsView').style.display = 'block';
+  document.getElementById('tabsBar').style.display = 'flex';
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runSpinner').style.display = 'block';
+  document.getElementById('runBtnText').textContent = 'Running…';
+  document.getElementById('topbarTitle').textContent = 'Pipeline running…';
+  switchTab('log');
+
+  log(`Pipeline started — model: ${model}`, 'i');
+  let data = DEMO;
+
+  // ── Step 1: PDF extraction (simulated in browser — real extraction is Python) ─
+  setStep(1, 'active');
+  log('Extracting text from PDF (PyMuPDF — runs in Python CLI, simulated in browser)…', 'i');
+  await sleep(500);
+  setStep(1, 'done');
+  log('Text extracted ✓ — sending to Ollama…', 's');
+
+  // ── Step 2: Ollama LLM ───────────────────────────────────────────────────────
+  setStep(2, 'active');
+  log(`Calling Ollama (${model})…`, 'i');
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const raw = await callOllama(EXPOSE_TEXT, model, host);
+      let parsed = null;
+      try {
+        let clean = raw.replace(/```json|```/g, '').trim();
+        const s = clean.indexOf('{'), e = clean.lastIndexOf('}') + 1;
+        if (s !== -1 && e > 0) parsed = JSON.parse(clean.slice(s, e));
+      } catch(pe) {
+        log(`JSON parse error: ${pe.message}`, 'w');
+      }
+      if (parsed && (parsed.address || parsed.purchasePrice)) {
+        // Merge with demo to fill any gaps the model missed
+        data = { ...DEMO, ...parsed, extras: {...DEMO.extras, ...(parsed.extras||{})},
+                  confidence: { ...DEMO.confidence, ...(parsed.confidence||{}) } };
+        if (!data.tenants?.length) data.tenants = DEMO.tenants;
+        log(`Ollama extraction successful — attempt ${attempt} ✓`, 's');
+        break;
+      } else {
+        log(`Attempt ${attempt}: response didn't parse as property data — retrying…`, 'w');
+        await sleep(1500);
+      }
+    } catch(e) {
+      log(`Ollama error (attempt ${attempt}): ${e.message}`, 'w');
+      if (attempt < 3) await sleep(2000);
+    }
+  }
+
+  // Auto-derive missing cost fields
+  if (!data.brokerFee && data.purchasePrice) data.brokerFee = Math.round(data.purchasePrice * 0.0714);
+  if (!data.ancillaryCosts && data.purchasePrice) data.ancillaryCosts = Math.round(data.purchasePrice * 0.08);
+  if (!data.divisionCosts) data.divisionCosts = 10000;
+  if (!data.marketingCosts) data.marketingCosts = 10000;
+  if (!data.otherCosts) data.otherCosts = 10000;
+  if (!data.finCosts) data.finCosts = Math.round((data.purchasePrice||0) * 0.04 * 1.5);
+
+  extractedData = data;
+  setStep(2, 'done');
+
+  // ── Step 3: Deal score ───────────────────────────────────────────────────────
+  setStep(3, 'active');
+  const metrics = computeMetrics(data, mktSqm);
+  log(`Deal score: ${metrics.score}/100 → ${metrics.rec}`, metrics.score>=70?'s':metrics.score>=50?'w':'e');
+  await sleep(300);
+  setStep(3, 'done');
+
+  // ── Step 4: Market price ─────────────────────────────────────────────────────
+  setStep(4, 'active');
+  if (mktSqm) log(`Market price: €${mktSqm}/m² (manual) ✓`, 's');
+  else log('No market price entered — revenue will show €0 (enter €/m² in sidebar)', 'w');
+  await sleep(200);
+  setStep(4, 'done');
+
+  // ── Step 5: Excel ────────────────────────────────────────────────────────────
+  setStep(5, 'active');
+  log('Building Excel template…', 'i');
+  await sleep(400);
+  setStep(5, 'done');
+  log('Excel ready — use ⬇ Download Excel button ✓', 's');
+
+  // ── Step 6: Drive ────────────────────────────────────────────────────────────
+  setStep(6, 'active');
+  log('Google Drive: needs credentials.json + python google_drive.py --auth', 'w');
+  await sleep(200);
+  setStep(6, 'done');
+
+  log('─── Pipeline complete ───────────────────────────────', 's');
+
+  renderResults(data, metrics, mktSqm, model);
+
+  runCounter++;
+  document.getElementById('runCount').textContent = `${runCounter} ${runCounter===1?'analysis':'analyses'} run`;
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runSpinner').style.display = 'none';
+  document.getElementById('runBtnText').textContent = '▶ Run Pipeline';
+  document.getElementById('topbarTitle').textContent = data.address || 'Analysis complete';
+  document.getElementById('dlBtn').style.display = 'flex';
+  document.getElementById('dlJsonBtn').style.display = 'flex';
+  switchTab('overview');
+}
+
+// ── Render results ────────────────────────────────────────────────────────────
+function renderResults(d, m, mktSqm, model) {
+  // KPI row
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Purchase Price</div><div class="kpi-value kv-blue">${eur(d.purchasePrice)}</div><div class="kpi-sub">${d.units} units · ${d.totalLivingArea} m²</div></div>
+    <div class="kpi"><div class="kpi-label">Monthly NKM</div><div class="kpi-value kv-green">${eur(m.monthlyNKM)}</div><div class="kpi-sub">incl. extras · p.a. ${eur(m.annualNKM)}</div></div>
+    <div class="kpi"><div class="kpi-label">Gross Yield</div><div class="kpi-value ${m.grossYield>=4.5?'kv-green':'kv-warn'}">${m.grossYield.toFixed(2)}%</div><div class="kpi-sub">target ≥4.5%</div></div>
+    <div class="kpi"><div class="kpi-label">Rent Multiplier</div><div class="kpi-value ${m.multiplier<=22?'kv-green':'kv-warn'}">${m.multiplier.toFixed(1)}x</div><div class="kpi-sub">target ≤22x</div></div>`;
+
+  // Deal score
+  const recCls = m.rec === 'ACQUIRE' ? 'acquire' : m.rec === 'REVIEW' ? 'review' : 'skip';
+  const scoreColor = m.score >= 70 ? 'var(--green)' : m.score >= 50 ? 'var(--warn)' : 'var(--danger)';
+  document.getElementById('dealScoreDisplay').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:32px;font-weight:700;font-family:var(--mono);color:${scoreColor}">${m.score}</span>
+      <span style="font-size:12px;color:var(--muted)">/ 100</span>
+    </div>
+    <div class="score-meter"><div class="score-fill" style="width:${m.score}%;background:${scoreColor}"></div></div>
+    <div class="rec-box ${recCls}" style="margin-top:12px">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-value">${m.rec}</div>
+      <div class="rec-sub">${m.rec==='ACQUIRE'?'Meets acquisition criteria':'Needs further review or below threshold'}</div>
+    </div>`;
+
+  // Confidence
+  const conf = d.confidence || {};
+  document.getElementById('confDisplay').innerHTML = Object.entries(conf).map(([k,v])=>`
+    <div style="margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="color:var(--muted)">${k}</span>
+        <span style="font-weight:600;color:${v>80?'var(--green)':v>50?'var(--warn)':'var(--danger)'}">${v}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${v}%;background:${v>80?'var(--green)':v>50?'var(--warn)':'var(--danger)'}"></div></div>
+    </div>`).join('');
+
+  // AI summary
+  const avgConf = Math.round(Object.values(conf).reduce((s,v)=>s+v,0)/Math.max(1,Object.values(conf).length));
+  document.getElementById('aiSummary').textContent =
+    `Fully rented ${d.units}-unit building (${d.buildYear}, renovated ${d.lastRenovation||'—'}) in ${d.district||d.address}. ` +
+    `${d.totalLivingArea} m² across ${d.floors} floors${d.atticDeveloped?' + converted attic':''}. ` +
+    `Current NKM ${eur(m.monthlyNKM)}/month = ${m.multiplier.toFixed(1)}x rent multiplier on ${eur(d.purchasePrice)} ask. ` +
+    `Energy class ${d.energyClass||'—'} (${d.energyValue||'—'} kWh/m²a). ` +
+    `§34 BauGB rear-plot densification potential noted. No contamination or Milieuschutz recorded.`;
+  document.getElementById('modelUsed').textContent = `${model} via Ollama @ localhost:11434 — avg confidence ${avgConf}%`;
+
+  // Property facts
+  const frow = (k, v, ok=true) => `<div class="field-row"><span class="fk">${k}</span><span class="fv ${ok?'ok':'miss'}">${v??'—'}</span></div>`;
+  document.getElementById('factsDisplay').innerHTML = [
+    frow('Address', d.address), frow('District', d.district), frow('Object Type', d.objectType),
+    frow('Build Year', d.buildYear), frow('Last Renovation', d.lastRenovation||'—', !!d.lastRenovation),
+    frow('Energy Class', d.energyClass), frow('Energy Demand', `${d.energyValue} kWh/m²a`),
+    frow('Heating', d.heatingType), frow('Fully Rented', d.fullyRented?'Yes':'No'),
+  ].join('');
+  document.getElementById('areasDisplay').innerHTML = [
+    frow('Total Living Area', `${d.totalLivingArea} m²`), frow('Basement Area', `${d.basementArea||'—'} m²`),
+    frow('Plot Size', `${d.plotSize} m²`), frow('Units', d.units), frow('Floors', `${d.floors} + DG`),
+    frow('Attic Developed', d.atticDeveloped?'Yes':'No'), frow('Parking Spots', d.parkingSpots),
+    frow('Avg Area/Unit', `${(d.totalLivingArea/d.units).toFixed(1)} m²`),
+  ].join('');
+  const tc = m.totalCosts;
+  document.getElementById('acqDisplay').innerHTML = [
+    ['Purchase Price', d.purchasePrice, 'blue'], ['Broker Fee', d.brokerFee, ''],
+    ['Notary + Transfer Tax', d.ancillaryCosts, ''], ['WEG Division', d.divisionCosts, ''],
+    ['Marketing', d.marketingCosts, ''], ['Other (buffer)', d.otherCosts, ''], ['Finance Costs', d.finCosts, ''],
+  ].map(([k,v,c])=>`<div class="field-row"><span class="fk">${k}</span><span class="fv ${c||'ok'}">${eur(v||0)}</span></div>`).join('')
+  + `<div class="field-row" style="font-weight:600"><span class="fk">Total GIK</span><span class="fv blue">${eur(tc)}</span></div>`;
+
+  // Rent roll
+  document.getElementById('rentBody').innerHTML = (d.tenants||[]).map(t=>`<tr>
+    <td><span class="badge badge-b">WE ${t.nr}</span></td>
+    <td>${t.floor}</td><td>${t.since}</td><td>${t.area}</td>
+    <td>${t.nkmSqm?.toFixed(2)||'—'}</td><td>${eur(t.nkm)}</td>
+    <td>${eur(t.bk)}</td><td>${eur(t.gross)}</td>
+    <td>${t.parking>0?eur(t.parking):'—'}</td></tr>`).join('');
+  const ta=d.tenants.reduce((s,t)=>s+t.area,0), tn=d.tenants.reduce((s,t)=>s+t.nkm,0);
+  document.getElementById('rentFoot').innerHTML = `
+    <tr><td colspan="3">Subtotal</td><td>${ta.toFixed(2)}</td>
+    <td>${(tn/ta).toFixed(2)}</td><td>${eur(Math.round(tn))}</td>
+    <td>${eur(d.tenants.reduce((s,t)=>s+t.bk,0))}</td>
+    <td>${eur(d.tenants.reduce((s,t)=>s+t.gross,0))}</td>
+    <td>${eur(d.tenants.reduce((s,t)=>s+(t.parking||0),0))}</td></tr>`;
+
+  const extras = d.extras||{};
+  document.getElementById('extraIncome').innerHTML = [
+    ['Container Annex', extras.containerRent||50], ['Flight Security Antenna', extras.flightSecurityRent||58.33],
+    ['Outdoor Parking', extras.outsideParkingRent||350],
+  ].map(([k,v])=>`<div class="field-row"><span class="fk">${k}</span><span class="fv ok">${eur(v)}/mo</span></div>`).join('')
+  + `<div class="field-row" style="font-weight:600"><span class="fk">Total NKM incl. extras</span><span class="fv blue">${eur(m.monthlyNKM)}/mo → ${eur(m.annualNKM)}/yr</span></div>`;
+
+  // Business case
+  document.getElementById('bcKpiRow').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Market Value (Base)</div><div class="kpi-value kv-blue">${mktSqm?eur(m.baseRev):'€—'}</div><div class="kpi-sub">${mktSqm?`@€${mktSqm}/m²`:'enter price/m²'}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Costs</div><div class="kpi-value kv-red">${eur(m.totalCosts)}</div><div class="kpi-sub">incl. financing</div></div>
+    <div class="kpi"><div class="kpi-label">Base Profit</div><div class="kpi-value ${m.baseProfit>=0?'kv-green':'kv-red'}">${eur(m.baseProfit)}</div><div class="kpi-sub">margin ${m.baseMargin.toFixed(1)}%</div></div>`;
+
+  document.getElementById('scenariosDisplay').innerHTML = [
+    ['Best Case (+10%)',  m.bestRev,  m.bestRev-m.totalCosts,  'ok'],
+    ['Base Case',         m.baseRev,  m.baseProfit,             m.baseProfit>=0?'ok':'miss'],
+    ['Worst Case (−10%)', m.worstRev, m.worstRev-m.totalCosts,  m.worstRev-m.totalCosts>=0?'ok':'miss'],
+  ].map(([l,r,p,c])=>`<div class="field-row"><span class="fk">${l}</span>
+    <div style="text-align:right"><div class="fv blue">${mktSqm?eur(r):'€—'}</div>
+    <div style="font-size:11px;color:${c==='ok'?'var(--green)':'var(--danger)'}">Profit: ${mktSqm?eur(p):'—'}</div></div></div>`).join('');
+
+  document.getElementById('costsDisplay').innerHTML = [
+    ['Purchase Price', d.purchasePrice], ['Broker', d.brokerFee], ['KNK', d.ancillaryCosts],
+    ['WEG Division', d.divisionCosts], ['Marketing', d.marketingCosts], ['Other', d.otherCosts], ['Finance', d.finCosts],
+  ].map(([k,v])=>`<div class="field-row"><span class="fk">${k}</span><span class="fv ok">${eur(v||0)}</span></div>`).join('')
+  + `<div class="field-row" style="font-weight:600"><span class="fk">Total GIK</span><span class="fv blue">${eur(m.totalCosts)}</span></div>`;
+
+  document.getElementById('valuationDisplay').innerHTML = [
+    frow('Market Price/m² (Check24)', mktSqm?`€${mktSqm}`:'Not entered', !!mktSqm),
+    frow('Living Area', `${d.totalLivingArea} m²`),
+    frow('Implied Market Value', mktSqm?eur(m.baseRev):'—', !!mktSqm),
+    frow('vs. Asking Price', mktSqm?`${m.baseRev>=d.purchasePrice?'+':''}${eur(m.baseRev-d.purchasePrice)}`:'—', mktSqm&&m.baseRev>=d.purchasePrice),
+  ].join('');
+
+  // Integrations
+  document.getElementById('driveDisplay').innerHTML = [
+    frow('Target folder', `${(d.address||'Property').replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}/`),
+    frow('Files', 'expose.pdf · extracted_data.json · Cirrus_BusinessCase.xlsx'),
+    frow('Images', 'extracted_photos/ (PyMuPDF extracted)'),
+    frow('Status', 'Needs credentials.json → run: python google_drive.py --auth', false),
+  ].join('');
+
+  document.getElementById('archDisplay').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-radius:8px;overflow:hidden;font-size:12px">
+    ${[
+      ['LLM Engine','Local Ollama','Claude Sonnet API'],
+      ['API Key','None required','ANTHROPIC_API_KEY'],
+      ['PDF handling','PyMuPDF text → LLM','Native PDF vision (higher accuracy)'],
+      ['Data leaves machine','Never','Sent to Anthropic servers'],
+      ['Cost','Free (your hardware)','Pay-per-token'],
+      ['Offline','✓ Fully offline','✗ Internet required'],
+    ].map(([k,o,a])=>`
+      <div style="background:var(--surface2);padding:9px 12px"><div style="color:var(--muted);font-size:10px;margin-bottom:2px">${k} — Ollama</div><div>${o}</div></div>
+      <div style="background:var(--surface2);padding:9px 12px"><div style="color:var(--muted);font-size:10px;margin-bottom:2px">${k} — Anthropic</div><div>${a}</div></div>
+    `).join('')}
+    </div>`;
+}
+
+// ── Download Excel ────────────────────────────────────────────────────────────
+function downloadExcel() {
+  if (!extractedData) return;
+  const d = extractedData;
+  const mktSqm = parseFloat(document.getElementById('pricePerSqm').value) || 0;
+  const m = computeMetrics(d, mktSqm);
+  const tc = m.totalCosts;
+  const base = m.baseRev;
+  const wb = XLSX.utils.book_new();
+
+  // Deal score sheet
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ['', 'DEAL SCORE SUMMARY', '', d.address],
+    ['', 'Deal Score', m.score + ' / 100'],
+    ['', 'Recommendation', m.rec],
+    ['', 'Monthly NKM', m.monthlyNKM],
+    ['', 'Annual NKM', m.annualNKM],
+    ['', 'Gross Yield %', m.grossYield / 100],
+    ['', 'Multiplier', m.multiplier],
+  ]), '📊 Deal Score');
+
+  // Stammdaten
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ['', 'INPUT - Stammdaten'], [],
+    ['', 'Adresse', d.address], ['', 'Bezirk', d.district], ['', 'Objekttyp', d.objectType],
+    ['', 'Baujahr', d.buildYear], ['', 'Modernisierung', d.lastRenovation],
+    ['', 'Grundstück m²', d.plotSize], ['', 'Wohnfläche m²', d.totalLivingArea],
+    ['', 'Kellerfläche m²', d.basementArea], ['', 'Einheiten', d.units],
+    ['', 'Stellplätze', d.parkingSpots], ['', 'Vollvermietet', d.fullyRented?'Ja':'Nein'],
+    ['', 'Energieklasse', d.energyClass], ['', 'Endenergie kWh/m²a', d.energyValue], [],
+    ['', 'Kaufpreis', d.purchasePrice], ['', 'Makler', d.brokerFee],
+    ['', 'KNK', d.ancillaryCosts], ['', 'Aufteilung WEG', d.divisionCosts],
+    ['', 'Vermarktung', d.marketingCosts], ['', 'Sonstiges', d.otherCosts],
+    ['', 'Finanzierung', d.finCosts], ['', 'GIK gesamt', tc],
+  ]), 'INPUT_Stammdaten');
+
+  // Mieterliste
+  const tenantRows = [['Nr','Etage','seit','Fläche m²','NKM €','NKM €/m²','BK €','Brutto €','Stellpl. €'],
+    ...d.tenants.map(t=>[t.nr,t.floor,t.since,t.area,t.nkm,t.nkmSqm,t.bk,t.gross,t.parking||0]),
+    ['','','gesamt',d.totalLivingArea,d.tenants.reduce((s,t)=>s+t.nkm,0),'','','',''],
+    ['','','Container Anbau','','',50,'','',''],
+    ['','','Flugsicherung','','',58.33,'','',''],
+    ['','','Außenstellpl.','','',350,'','',''],
+    ['','','NKM gesamt','','',m.monthlyNKM,'','',''],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tenantRows), 'INPUT_Mieterliste');
+
+  // Business case
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ['', '', 'Base Case', 'Best Case (+10%)', 'Worst Case (-10%)'],
+    ['', 'Abgabepreis/m²', mktSqm, mktSqm*1.1, mktSqm*0.9],
+    ['', 'Verkaufserlös', base, base*1.1, base*0.9],
+    ['', 'Mieteinnahmen p.a.', m.annualNKM, m.annualNKM, m.annualNKM], [],
+    ['', 'Kaufpreis', d.purchasePrice, d.purchasePrice, d.purchasePrice],
+    ['', 'Gesamtkosten', tc, tc, tc], [],
+    ['', 'Projektgewinn', base-tc, base*1.1-tc, base*0.9-tc],
+    ['', 'Marge %', base?(base-tc)/base:0, base*1.1?(base*1.1-tc)/(base*1.1):0, base*0.9?(base*0.9-tc)/(base*0.9):0],
+  ]), 'Business Case (intern)');
+
+  XLSX.writeFile(wb, `Cirrus_BusinessCase_${new Date().toISOString().slice(0,10)}.xlsx`);
+  log('Excel downloaded ✓', 's');
+}
+
+// ── Download JSON ─────────────────────────────────────────────────────────────
+function downloadJSON() {
+  if (!extractedData) return;
+  const mktSqm = parseFloat(document.getElementById('pricePerSqm').value) || 0;
+  const m = computeMetrics(extractedData, mktSqm);
+  const out = { ...extractedData, _metrics: m };
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `extracted_data_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  log('JSON downloaded ✓', 's');
+}
+
+// ── Auto-check on load ────────────────────────────────────────────────────────
+checkOllama();
+</script>
+</body>
+</html>

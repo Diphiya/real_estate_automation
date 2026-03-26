@@ -1,0 +1,169 @@
+{
+  "address": "Oranienburger Straße 6 in 16321 Bernau",
+  "district": "Rehberge",
+  "objectType": "Mehrfamilienhaus mit Stellplätzen und Neubaupotenzial",
+  "buildYear": 1920,
+  "lastRenovation": 2000,
+  "plotSize": 1172,
+  "totalLivingArea": 594.54,
+  "basementArea": 82.61,
+  "floors": null,
+  "atticDeveloped": true,
+  "units": 11,
+  "fullyRented": true,
+  "parkingSpots": 11,
+  "energyClass": "F",
+  "energyValue": 164.1,
+  "heatingType": "Zentrale Heizung- und Warmwasseraufbereitung",
+  "purchasePrice": 1350000,
+  "brokerFee": 47850,
+  "ancillaryCosts": 108000,
+  "divisionCosts": 10000,
+  "marketingCosts": 10000,
+  "otherCosts": 10000,
+  "finCosts": 81000.0,
+  "tenants": [
+    {
+      "nr": 1,
+      "floor": "EG li",
+      "since": "01.11.2015",
+      "area": 46.95,
+      "nkm": 417.83,
+      "nkmSqm": 8.9,
+      "bk": 110,
+      "gross": 527.83,
+      "parking": 0
+    },
+    {
+      "nr": 2,
+      "floor": "EG mi",
+      "since": "01.02.2010",
+      "area": 52.49,
+      "nkm": 466.02,
+      "nkmSqm": 8.88,
+      "bk": 90,
+      "gross": 556.02,
+      "parking": 0
+    },
+    {
+      "nr": 3,
+      "floor": "EG re",
+      "since": "01.07.2022",
+      "area": 49.16,
+      "nkm": 475,
+      "nkmSqm": 9.66,
+      "bk": 70,
+      "gross": 545,
+      "parking": 0
+    },
+    {
+      "nr": 4,
+      "floor": "1. OG li",
+      "since": "01.08.2005",
+      "area": 50,
+      "nkm": 404.27,
+      "nkmSqm": 8.09,
+      "bk": 90,
+      "gross": 494.27,
+      "parking": 100
+    },
+    {
+      "nr": 5,
+      "floor": "1. OG mi",
+      "since": "01.11.2022",
+      "area": 51.18,
+      "nkm": 500,
+      "nkmSqm": 9.77,
+      "bk": 100,
+      "gross": 600,
+      "parking": 50
+    },
+    {
+      "nr": 6,
+      "floor": "1. OG re",
+      "since": "01.07.2022",
+      "area": 50.47,
+      "nkm": 440,
+      "nkmSqm": 8.72,
+      "bk": 70,
+      "gross": 510,
+      "parking": 0
+    },
+    {
+      "nr": 7,
+      "floor": "2. OG li",
+      "since": "01.07.2011",
+      "area": 50.61,
+      "nkm": 409.15,
+      "nkmSqm": 8.08,
+      "bk": 80,
+      "gross": 489.15,
+      "parking": 50
+    },
+    {
+      "nr": 8,
+      "floor": "2. OG mi",
+      "since": "01.04.2009",
+      "area": 51.39,
+      "nkm": 456.22,
+      "nkmSqm": 8.88,
+      "bk": 95,
+      "gross": 551.22,
+      "parking": 50
+    },
+    {
+      "nr": 9,
+      "floor": "2. OG re",
+      "since": "01.08.2014",
+      "area": 50.21,
+      "nkm": 407.53,
+      "nkmSqm": 8.12,
+      "bk": 80,
+      "gross": 487.53,
+      "parking": 50
+    },
+    {
+      "nr": 10,
+      "floor": "DG li",
+      "since": "15.10.2025",
+      "area": 80.52,
+      "nkm": 900,
+      "nkmSqm": 11.18,
+      "bk": 150,
+      "gross": 1050,
+      "parking": 50
+    },
+    {
+      "nr": 11,
+      "floor": "DG re",
+      "since": "01.08.2021",
+      "area": 61.56,
+      "nkm": 510,
+      "nkmSqm": 8.28,
+      "bk": 95,
+      "gross": 605,
+      "parking": 0
+    }
+  ],
+  "extras": {
+    "containerRent": null,
+    "flightSecurityRent": 58.33,
+    "outsideParkingRent": 350
+  },
+  "confidence": {
+    "address": 100,
+    "pricing": 100,
+    "areas": 100,
+    "tenants": 100,
+    "costs": 100,
+    "photos": null
+  },
+  "_metrics": {
+    "monthlyNKM": 5794.35,
+    "annualNKM": 69532.2,
+    "grossYield": 5.15,
+    "multiplier": 19.42,
+    "dealScore": 57,
+    "recommendation": "REVIEW"
+  }
+}

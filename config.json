@@ -1,0 +1,68 @@
+{
+  "_comment": "Cirrus Real Estate — Ollama Pipeline Configuration. Edit freely — no code changes needed.",
+
+  "ollama": {
+    "model": "llama3.1",
+    "_modelNotes": "Recommended: llama3.1, mistral, gemma2, qwen2.5. Larger = better JSON accuracy.",
+    "host": "http://localhost:11434",
+    "options": {
+      "temperature": 0.0,
+      "num_predict": 4096,
+      "num_ctx": 8192
+    }
+  },
+
+  "extraction": {
+    "maxPdfChars": 14000,
+    "requiredFields": ["address", "buildYear", "purchasePrice", "totalLivingArea", "units"],
+    "minConfidenceThreshold": 50,
+    "warnOnMissingFields": true,
+    "extractPhotos": true,
+    "photoOutputDir": "extracted_photos"
+  },
+
+  "acquisitionCriteria": {
+    "_comment": "Thresholds used for automated deal scoring (0–100)",
+    "targetGrossYield": 4.5,
+    "maxMultiplier": 22,
+    "minUnits": 4,
+    "maxPurchasePrice": 5000000,
+    "minLivingArea": 200,
+    "flagEnergyClassesBelowD": true
+  },
+
+  "costs": {
+    "_comment": "All rates as decimals. Used to auto-derive missing cost fields from purchasePrice.",
+    "brokerFeeRate": 0.0714,
+    "transferTaxRate": 0.06,
+    "notaryRate": 0.02,
+    "divisionCostsFixed": 10000,
+    "marketingCostsFixed": 10000,
+    "otherCostsFixed": 10000
+  },
+
+  "financing": {
+    "_comment": "Used to auto-calculate finCosts if not in the exposé.",
+    "ltv": 1.0,
+    "interestRatePA": 0.04,
+    "repaymentRatePA": 0.01,
+    "capitalBindingYears": 1.5
+  },
+
+  "scenarios": {
+    "_comment": "Multipliers applied to base case revenue for scenario analysis in Excel.",
+    "best": 1.10,
+    "worst": 0.90
+  },
+
+  "googleDrive": {
+    "rootFolderName": "Cirrus Real Estate — Projects",
+    "subFolders": ["Exposé", "Excel", "Data", "Photos"],
+    "shareWithEmail": ""
+  },
+
+  "integrations": {
+    "uploadToDrive": true,
+    "check24Headless": true
+  }
+}
