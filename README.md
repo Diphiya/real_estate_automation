@@ -1,7 +1,7 @@
 
 # Cirrus Real Estate Automation
 
-Automated **real estate exposé extraction, evaluation, and reporting** pipeline — designed to accelerate property deal evaluation by extracting data from exposés, populating Excel templates, and integrating with Google Workspace (Drive & Photos).
+Automated **real estate exposé extraction, evaluation, and reporting** pipeline — designed to accelerate property deal evaluation by extracting data from exposés, populating Excel templates, and integrating with Google Workspace (Drive).
 
 Cirrus Real Estate is a Berlin-based property developer. One of our core competitive advantages is **speed**: the best deals are often on the market for only a few hours. Currently, exposés are screened manually and data is transferred by hand into Excel templates, which is slow and error-prone. This project automates that workflow.
 
